@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV.dot - The Ultimate AI-Powered Toolkit</title>
+  
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 載入 React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- 載入 Babel (用於在瀏覽器編譯 JSX) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- 載入 Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .group\/btn:hover .animated-glow {
+      background-size: 200% 200%;
+      animation: gradientShift 2s ease infinite;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans overflow-x-hidden">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- Lucide Icon Helper Component ---
+    const Icon = ({ name, size = 24, className = '', strokeWidth = 2, fill = 'none' }) => {
+      // 處理圖示名稱對應
+      let iconName = name;
+      if (name === 'check-circle-2') iconName = 'check-circle';
+      if (name === 'trash-2') iconName = 'trash-2';
+      
+      const icon = window.lucide.icons[iconName];
+      if (!icon) return null;
+      
+      const svgString = icon.toSvg({ 
+        width: size, 
+        height: size, 
+        class: className, 
+        'stroke-width': strokeWidth,
+        fill: fill
+      });
+      return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: svgString }} />;
+    };
+
+    // --- 多國語言字典 (Translations Dictionary) ---
+    const translations = {
+      en: {
+        nav: { features: "Features", howItWorks: "How it Works", pricing: "Pricing", addToChrome: "Add to Chrome", backToHome: "Back to Home" },
+        hero: {
+          badge: "One-Click Update Your CV in Canva",
+          bestTools: "Best AI CV Tools",
+          slogan: "CLICK GEN COPY",
+          clickHere: "Click here",
+          title1: "Your dream job just",
+          title2: "One Click Away.",
+          desc: "Stop wasting hours manually tailoring your CV for every application. CV.dot is a next-gen Chrome extension that leverages advanced AI to automate your job hunt and maximize your interview chances.",
+          btnPrimary: "Get Started for Free",
+          btnSecondary: "View Pricing",
+          note: "Efficiency meets excellence. No credit card required for Free plan."
+        },
+        mockup: {
+          plan: "Premium",
+          title: "Optimization Results",
+          startOver: "Start Over",
+          atsScore: "ATS Match Score",
+          jdFocus: "JD FOCUS",
+          jdText: '"The company is hiring a Senior Platform Marketing Manager for their B2B financial services business, seeking a candidate with experience in driving measurable growth (flows, retention, revenue) via end-to-end campaign strategy, strong commercial acumen, and cross-functional collaboration within a regulated environment."',
+          tags: [
+            "platform marketing strategy", "measurable growth", "adviser market",
+            "commercial thinking", "modern marketing execution", 
+            "campaign strategy & delivery", "end-to-end", "integrated",
+            "multi-channel marketing campaigns", "commercial priorities", "flows",
+            "retention", "platform growth", "ROI", "messaging & content development"
+          ],
+          analysis: {
+            title: "Strategic Analysis",
+            subtitle: "ATS Score & SWOT assessment.",
+            scoreTitle: "ATS OPTIMIZATION",
+            missingTitle: "MISSING KEYWORDS",
+            missingTags: ["adviser platform", "financial services", "investments", "FCA", "regulated environment", "net flows", "platform growth", "retention", "advisers", "paraplanners", "behavioural science", "value propositions"],
+            strengthsTitle: "STRENGTHS",
+            strengthText: "Your CV shows solid experience in 'end-to-end acquisition campaigns' and cross-functional collaboration with '15 internal cross-functional teams', which aligns with the JD's requirement for integrated campaign delivery and stakeholder management."
+          },
+          interview: {
+            title: "Interview Preparation",
+            subtitle: "Predicted questions based on the JD.",
+            q1: "Describe the most successful multi-channel campaign you've led for an adviser platform that directly contributed to measurable net flows and revenue growth. Walk me through how you built the commercial case, defined the KPIs, and reported the final ROI to senior stakeholders.",
+            q2: "Imagine our Sales team wants a campaign focused on adviser retention, while the Product team is pushing for a major launch campaign for a new feature on our Investcentre platform. With limited resources for only one major initiative this quarter, how would you decide which to prioritize and what specific data would you use to justify your recommendation?",
+            q3: "Pick a complex aspect of a platform proposition, like a specific tax wrapper or a recent regulatory change. Explain, step-by-step, how you would translate this into a simple, persuasive story for financial advisers, specifically incorporating principles of behavioural science to reduce friction and build their confidence."
+          },
+          coverLetter: {
+            title: "Cover Letter",
+            subtitle: "AI-generated, personalized to the JD.",
+            text1: "Dear Hiring Team,",
+            text2: "The Senior Platform Marketing Manager role captured my attention as it sits at the heart of commercial strategy and execution—precisely where I have built my career. The opportunity to own a platform marketing strategy with clear accountability for driving net flows and revenue growth at a FTSE 250 leader is a compelling next step.",
+            text3: "Your need for a manager to deliver high-impact, multi-channel campaigns aligns directly with my experience at Church & Dwight. There, I led end-to-end acquisition campaigns for 12 brands across 5 EMEA markets, translating commercial goals into measurable results. By closely monitoring performance data, I supported critical sales events like Prime Day, achieving a minimum 6% year-over-year ROAS. My work on the Go-To-Market strategy for over 50 new products has given me a deep understanding of how to position complex offerings and articulate their value to drive adoption and growth.",
+            text4: "I am adept at working within a complex stakeholder environment to deliver results. I regularly collaborated with 15 internal cross-functional teams, including sales and financial legal, alongside 5 external agencies."
+          },
+          outreach: {
+            title: "LinkedIn Outreach",
+            subtitle: "Follow-up message templates based on your application.",
+            tip: "Replace [Name] with the hiring manager's name before sending. Find them on the company's LinkedIn page.",
+            profTitle: "PROFESSIONAL & DIRECT",
+            profBody: "Hi [Name], I have just submitted my application for the Senior Platform Marketing Manager position. My experience delivering end-to-end acquisition campaigns that achieved a minimum 6% YoY ROAS increase aligns with the role's focus on driving measurable net flows. I look forward to hearing from your team. Best, Ting Yu Lo\n\nIf you need more information about me please let me know. Looking forward to hearing from your company. Have a nice day.\nBest, [name]",
+            achieveTitle: "ACHIEVEMENT-FOCUSED",
+            achieveBody: "Hi [Name], I wanted to reach out after applying for the Senior Platform Marketing Manager role. In my previous position, I developed the digital GTM strategy for over 50 new product launches, which I believe is directly applicable to your current objectives. I'd love to connect.",
+            copyBtn: "Copy Message"
+          },
+          projects: {
+            title: "Saved Projects",
+            itemName: "Final Version",
+            itemTag: "SAMPLE CV.PDF",
+            date: "20/03/2026",
+            match: "55% MATCH"
+          },
+          settings: {
+            title: "Upgrade Your Plan",
+            subtitle: "Unlock premium AI features and limitless optimizations.",
+            btn: "Current Plan"
+          }
+        },
+        features: {
+          title: "Powerful Features to Automate Your Success",
+          desc: "Everything you need to bypass ATS filters and land your dream job faster.",
+          list: [
+            { icon: 'target', title: "AI CV Optimization", desc: "Instantly tailor your resume keywords and structure to match specific Job Descriptions (JD)." },
+            { icon: 'bar-chart', title: "ATS Match Score", desc: "Get real-time compatibility scores and SWOT analysis to beat the Applicant Tracking Systems." },
+            { icon: 'download', title: "One-Click Data Extraction", desc: "Seamlessly pull job details from platforms like LinkedIn and Indeed with a single click." },
+            { icon: 'refresh-cw', title: "One-Click Update Canva CV", desc: "Exclusively sync optimized content directly into your Claude project to update your Canva templates instantly." },
+            { icon: 'message-square', title: "Outreach Assistant", desc: "Generate high-conversion LinkedIn messages and cover letters with professional sign-offs." },
+            { icon: 'folder', title: "Local Project History", desc: "Save, manage, and track your optimization history locally and securely within your browser." }
+          ]
+        },
+        pricing: {
+          title: "Lowest Pricing",
+          desc: "Choose the plan that fits your career goals. Upgrade anytime.",
+          forever: "/forever",
+          mo: "/mo",
+          mostPopular: "Most Popular",
+          fullExperience: "Most Powerful",
+          lowestPrice: "lowest price in the market",
+          free: { title: "Free", btn: "Get Started" },
+          pro: { title: "Pro", btn: "Upgrade to Pro" },
+          premium: { title: "Premium", btn: "Get Premium" },
+          bullets: {
+            free: [
+              { bold: "Core AI CV Optimization:", text: " Automatically tailors keywords and structure to JD.", highlight: false },
+              { bold: "ATS Match & SWOT Analysis:", text: " Real-time compatibility highlighting strengths/gaps.", highlight: false },
+              { bold: "Interview Preparation:", text: " AI-generated questions based on profile.", highlight: false },
+              { bold: "Web Job Extraction:", text: " Pull JD text from LinkedIn/Indeed.", highlight: false },
+              { bold: "Local Project History:", text: " Manage history locally.", highlight: false }
+            ],
+            pro: [
+              { bold: "Includes all Free features", text: "", highlight: false },
+              { bold: "AI Cover Letter Generator:", text: " Custom, job-specific cover letters professionally written.", highlight: true },
+              { bold: "Enhanced AI Logic:", text: " More nuanced and high-quality optimization prompts for better results.", highlight: false }
+            ],
+            premium: [
+              { bold: "Includes all Pro features", text: "", highlight: false },
+              { bold: "LinkedIn Outreach:", text: " Specialized message templates with professional sign-offs.", highlight: true },
+              { bold: "One-Click Update Canva CV:", text: " Auto-generate content by connecting Canva via free Claude.", highlight: true },
+              { bold: "Higher Quality Result:", text: " Higher Quality LLM Module for all features.", highlight: true }
+            ]
+          }
+        },
+        footer: {
+          privacy: "Privacy Policy",
+          terms: "Terms of Service",
+          refund: "Refund Policy",
+          contact: "Contact Me",
+          tagline: "The Ultimate AI-Powered Toolkit for Job Seekers.",
+          rights: "CV.dot. All rights reserved."
+        }
+      },
+      "zh-TW": {
+        nav: { features: "功能特色", howItWorks: "運作方式", pricing: "定價方案", addToChrome: "加到 Chrome", backToHome: "回首頁" },
+        hero: {
+          badge: "一鍵即可在 Canva 中更新您的履歷",
+          bestTools: "最頂尖的 AI 履歷工具",
+          slogan: "CLICK GEN COPY",
+          clickHere: "點擊這裡",
+          title1: "您的理想工作就只差",
+          title2: "一鍵之遙。",
+          desc: "別再浪費數小時為每個職缺手動修改履歷。CV.dot 是一款次世代 Chrome 擴充功能，利用先進 AI 自動化您的求職流程，將面試機會最大化。",
+          btnPrimary: "免費開始使用",
+          btnSecondary: "查看定價",
+          note: "效率與卓越的完美結合。免費方案無需綁定信用卡。"
+        },
+        mockup: {
+          plan: "尊享",
+          title: "最佳化結果",
+          startOver: "重新開始",
+          atsScore: "ATS 匹配分數",
+          jdFocus: "JD 焦點",
+          jdText: '"本公司正在招募資深平台行銷經理，尋求具備透過端到端行銷活動策略推動可衡量成長（流量、留存、營收）經驗，並在受監管環境中具備強大商業敏銳度與跨部門協作能力的候選人。"',
+          tags: [
+            "平台行銷策略", "可衡量成長", "顧問市場",
+            "商業思維", "現代行銷執行", 
+            "活動策略與交付", "端到端", "整合行銷",
+            "多渠道行銷活動", "商業優先事項", "流程",
+            "留存率", "平台成長", "投資回報率", "訊息與內容開發"
+          ],
+          analysis: {
+            title: "策略分析",
+            subtitle: "ATS 分數與 SWOT 評估。",
+            scoreTitle: "ATS 最佳化",
+            missingTitle: "缺失關鍵字",
+            missingTags: ["顧問平台", "金融服務", "投資", "FCA", "受監管環境", "淨流量", "平台成長", "留存率", "顧問", "理財規劃師", "行為科學", "價值主張"],
+            strengthsTitle: "優勢",
+            strengthText: "您的履歷顯示在「端到端獲客活動」與「15 個跨部門團隊」協作方面有紮實的經驗，這與 JD 對整合活動交付與利益相關者管理的要求高度契合。"
+          },
+          interview: {
+            title: "面試準備",
+            subtitle: "根據職位描述 (JD) 預測的面試問題。",
+            q1: "請描述您為顧問平台領導過最成功的多渠道行銷活動，該活動如何直接促進可衡量的淨流量與營收成長？請說明您如何建立商業案例、定義 KPI，並向高層主管報告最終的投資回報率 (ROI)。",
+            q2: "假設我們的銷售團隊希望開展一項專注於顧問留存率的行銷活動，而產品團隊則在推動平台上新功能的重大發佈活動。在本季度資源有限的情況下，您將如何決定優先順序？您會使用哪些具體數據來證明您的建議？",
+            q3: "挑選平台主張中較複雜的一個層面，例如特定的稅務包裝或最近的監管法規變更。請逐步解釋您將如何將此轉化為對財務顧問而言簡單、具說服力的故事，並具體說明如何融入行為科學原則來減少摩擦並建立他們的信心。"
+          },
+          coverLetter: {
+            title: "求職信",
+            subtitle: "AI 生成，專為該職位量身打造。",
+            text1: "親愛的招聘團隊：",
+            text2: "資深平台行銷經理一職深深吸引了我的注意，因為它位處商業策略與執行的核心——這正是我職涯發展的重心所在。能有機會在領先企業中主導平台行銷策略，並明確肩負推動淨流量與營收成長的責任，這對我而言是極具吸引力的下一步。",
+            text3: "貴公司需要一位能交付高影響力、多渠道行銷活動的經理，這與我在 Church & Dwight 的經驗完全吻合。在那裡，我領導了橫跨 5 個 EMEA 市場、涵蓋 12 個品牌的端到端獲客活動，將商業目標轉化為可衡量的成果。透過密切監控績效數據，我支援了如 Prime Day 等關鍵銷售活動，實現了至少 6% 的廣告投資回報率 (ROAS) 年增長。",
+            text4: "我擅長在複雜的利益相關者環境中工作以交付成果。我經常與 15 個內部跨部門團隊（包含銷售與財務法務）以及 5 家外部機構協作。"
+          },
+          outreach: {
+            title: "LinkedIn 拓展",
+            subtitle: "根據您的申請生成的後續追蹤訊息模板。",
+            tip: "寄出前請將 [Name] 替換為招聘經理的名字。您可以在公司的 LinkedIn 頁面上找到他們。",
+            profTitle: "專業直接",
+            profBody: "嗨 [Name]，我剛提交了資深平台行銷經理職位的申請。我過去交付端到端獲客活動並達成至少 6% ROAS 年增長的經驗，與該職位專注於推動可衡量淨流量的目標高度契合。期待收到您團隊的回覆。祝好，Ting Yu Lo\n\n如果您需要更多關於我的資訊，請隨時通知我。期待收到貴公司的消息。祝您有美好的一天。\n祝好，[name]",
+            achieveTitle: "成果導向",
+            achieveBody: "嗨 [Name]，在申請資深平台行銷經理一職後，我想主動與您聯繫。在我之前的職位中，我為超過 50 個新產品發佈制定了數位 GTM 策略，我相信這能直接應用於貴公司目前的目標。希望能有機會與您交流。",
+            copyBtn: "複製訊息"
+          },
+          projects: {
+            title: "儲存的專案",
+            itemName: "最終版本",
+            itemTag: "履歷範本.PDF",
+            date: "20/03/2026",
+            match: "55% 匹配度"
+          },
+          settings: {
+            title: "升級您的方案",
+            subtitle: "解鎖進階 AI 功能與無限次最佳化。",
+            btn: "目前方案"
+          }
+        },
+        features: {
+          title: "自動化您成功之路的強大功能",
+          desc: "繞過 ATS 篩選系統，更快拿下理想工作所需的一切。",
+          list: [
+            { icon: 'target', title: "AI 履歷最佳化", desc: "即時調整您的履歷關鍵字與結構，精準匹配特定職位描述 (JD)。" },
+            { icon: 'bar-chart', title: "ATS 匹配分數", desc: "獲取即時相容性分數與 SWOT 分析，輕鬆擊敗申請者追蹤系統。" },
+            { icon: 'download', title: "一鍵資料擷取", desc: "只要點擊一下，即可從 LinkedIn 和 Indeed 等平台無縫提取職缺詳細資訊。" },
+            { icon: 'refresh-cw', title: "一鍵更新 Canva 履歷", desc: "獨家將最佳化內容直接同步至您的 Claude 專案，即時更新您的 Canva 模板。" },
+            { icon: 'message-square', title: "外展拓展助手", desc: "生成高轉換率的 LinkedIn 訊息與求職信，並附上專業署名。" },
+            { icon: 'folder', title: "本地專案紀錄", desc: "在瀏覽器中安全地於本地端儲存、管理和追蹤您的最佳化歷史紀錄。" }
+          ]
+        },
+        pricing: {
+          title: "最低定價",
+          desc: "選擇符合您職涯目標的方案。隨時可以升級。",
+          forever: "/永久",
+          mo: "/月",
+          mostPopular: "最受歡迎",
+          fullExperience: "最強大",
+          lowestPrice: "市場最低價",
+          free: { title: "免費", btn: "開始使用" },
+          pro: { title: "專業", btn: "升級至專業版" },
+          premium: { title: "尊享", btn: "獲取尊享版" },
+          bullets: {
+            free: [
+              { bold: "核心 AI 履歷最佳化：", text: "自動根據 JD 調整關鍵字和結構。", highlight: false },
+              { bold: "ATS 匹配與 SWOT 分析：", text: "即時相容性分析，突顯優勢與差距。", highlight: false },
+              { bold: "面試準備：", text: "根據個人檔案生成專屬 AI 面試問題。", highlight: false },
+              { bold: "網頁職缺擷取：", text: "一鍵從 LinkedIn/Indeed 擷取 JD 文字。", highlight: false },
+              { bold: "本地專案紀錄：", text: "在本地端安全管理您的歷史紀錄。", highlight: false }
+            ],
+            pro: [
+              { bold: "包含所有免費功能", text: "", highlight: false },
+              { bold: "AI 求職信生成器：", text: "量身打造、針對特定工作的專業求職信。", highlight: true },
+              { bold: "進階 AI 邏輯：", text: "更細膩、高品質的最佳化提示詞，帶來更好結果。", highlight: false }
+            ],
+            premium: [
+              { bold: "包含所有專業版功能", text: "", highlight: false },
+              { bold: "LinkedIn 拓展模板：", text: "專屬訊息模板與專業署名，提升人脈拓展效率。", highlight: true },
+              { bold: "一鍵更新 Canva 履歷：", text: "透過免費版 Claude 連接 Canva，一鍵自動生成內容。", highlight: true },
+              { bold: "更高品質結果：", text: "所有功能皆採用更高品質的 LLM 模組。", highlight: true }
+            ]
+          }
+        },
+        footer: {
+          privacy: "隱私權政策",
+          terms: "服務條款",
+          refund: "退款政策",
+          contact: "聯絡我們",
+          tagline: "求職者專屬的終極 AI 工具包。",
+          rights: "CV.dot. 保留所有權利。"
+        }
+      },
+      "zh-CN": {
+        nav: { features: "功能特点", howItWorks: "运作方式", pricing: "定价方案", addToChrome: "添加到 Chrome", backToHome: "返回首页" },
+        hero: {
+          badge: "一键即可在 Canva 中更新您的简历",
+          bestTools: "最顶尖的 AI 简历工具",
+          slogan: "CLICK GEN COPY",
+          clickHere: "点击这里",
+          title1: "您的理想工作就只差",
+          title2: "一键之遥。",
+          desc: "别再浪费数小时为每个职位手动修改简历。CV.dot 是一款次世代 Chrome 扩展，利用先进 AI 自动化您的求职流程，将面试机会最大化。",
+          btnPrimary: "免费开始使用",
+          btnSecondary: "查看定价",
+          note: "效率与卓越的完美结合。免费方案无需绑定信用卡。"
+        },
+        mockup: {
+          plan: "尊享",
+          title: "优化结果",
+          startOver: "重新开始",
+          atsScore: "ATS 匹配分数",
+          jdFocus: "JD 焦点",
+          jdText: '"本公司正在招聘资深平台营销经理，寻求具备通过端到端营销活动策略推动可衡量增长（流量、留存、营收）经验，并在受监管环境中具备强大商业敏锐度与跨部门协作能力的候选人。"',
+          tags: [
+            "平台营销策略", "可衡量增长", "顾问市场",
+            "商业思维", "现代营销执行", 
+            "活动策略与交付", "端到端", "整合营销",
+            "多渠道营销活动", "商业优先事项", "流程",
+            "留存率", "平台增长", "投资回报率", "消息与内容开发"
+          ],
+          analysis: {
+            title: "策略分析",
+            subtitle: "ATS 分数与 SWOT 评估。",
+            scoreTitle: "ATS 优化",
+            missingTitle: "缺失关键词",
+            missingTags: ["顾问平台", "金融服务", "投资", "FCA", "受监管环境", "净流量", "平台增长", "留存率", "顾问", "理财规划师", "行为科学", "价值主张"],
+            strengthsTitle: "优势",
+            strengthText: "您的简历显示在“端到端获客活动”与“15 个跨部门团队”协作方面有扎实的经验，这与 JD 对整合活动交付与利益相关者管理的要求高度契合。"
+          },
+          interview: {
+            title: "面试准备",
+            subtitle: "根据职位描述 (JD) 预测的面试问题。",
+            q1: "请描述您为顾问平台领导过最成功的多渠道营销活动，该活动如何直接促进可衡量的净流量与营收增长？请说明您如何建立商业案例、定义 KPI，并向高层主管报告最终的投资回报率 (ROI)。",
+            q2: "假设我们的销售团队希望开展一项专注于顾问留存率的营销活动，而产品团队则在推动平台上新功能的重大发布活动。在本季度资源有限的情况下，您将如何决定优先顺序？您会使用哪些具体数据来证明您的建议？",
+            q3: "挑选平台主张中较复杂的一个层面，例如特定的税务包装或最近的监管法规变更。请逐步解释您将如何将此转化为对财务顾问而言简单、具说服力的故事，并具体说明如何融入行为科学原则来减少摩擦并建立他们的信心。"
+          },
+          coverLetter: {
+            title: "求职信",
+            subtitle: "AI 生成，专为该职位量身打造。",
+            text1: "亲爱的招聘团队：",
+            text2: "资深平台营销经理一职深深吸引了我的注意，因为它位处商业策略与执行的核心——这正是我职业发展的重心所在。能有机会在领先企业中主导平台营销策略，并明确肩负推动净流量与营收增长的责任，这对我而言是极具吸引力的下一步。",
+            text3: "贵公司需要一位能交付高影响力、多渠道营销活动的经理，这与我在 Church & Dwight 的经验完全吻合。在那里，我领导了横跨 5 个 EMEA 市场、涵盖 12 个品牌的端到端获客活动，将商业目标转化为可衡量的成果。通过密切监控绩效数据，我支持了如 Prime Day 等关键销售活动，实现了至少 6% 的广告投资回报率 (ROAS) 年增长。",
+            text4: "我擅长在复杂的利益相关者环境中工作以交付成果。我经常与 15 个内部跨部门团队（包含销售与财务法务）以及 5 家外部机构协作。"
+          },
+          outreach: {
+            title: "LinkedIn 拓展",
+            subtitle: "根据您的申请生成的后续追踪消息模板。",
+            tip: "寄出前请将 [Name] 替换为招聘经理的名字。您可以在公司的 LinkedIn 页面上找到他们。",
+            profTitle: "专业直接",
+            profBody: "嗨 [Name]，我刚提交了资深平台营销经理职位的申请。我过去交付端到端获客活动并达成至少 6% ROAS 年增长的经验，与该职位专注于推动可衡量净流量的目标高度契合。期待收到您团队的回复。祝好，Ting Yu Lo\n\n如果您需要更多关于我的信息，请随时通知我。期待收到贵公司的消息。祝您有美好的一天。\n祝好，[name]",
+            achieveTitle: "成果导向",
+            achieveBody: "嗨 [Name]，在申请资深平台营销经理一职后，我想主动与您联系。在我之前的职位中，我为超过 50 个新产品发布制定了数字 GTM 策略，我相信这能直接应用于贵公司目前的目标。希望能有机会与您交流。",
+            copyBtn: "复制消息"
+          },
+          projects: {
+            title: "保存的项目",
+            itemName: "最终版本",
+            itemTag: "简历范本.PDF",
+            date: "20/03/2026",
+            match: "55% 匹配度"
+          },
+          settings: {
+            title: "升级您的方案",
+            subtitle: "解锁进阶 AI 功能与无限次优化。",
+            btn: "当前方案"
+          }
+        },
+        features: {
+          title: "自动化您成功之路的强大功能",
+          desc: "绕过 ATS 筛选系统，更快拿下理想工作所需的一切。",
+          list: [
+            { icon: 'target', title: "AI 简历优化", desc: "即时调整您的简历关键词与结构，精准匹配特定职位描述 (JD)。" },
+            { icon: 'bar-chart', title: "ATS 匹配分数", desc: "获取即时兼容性分数与 SWOT 分析，轻松击败申请者追踪系统。" },
+            { icon: 'download', title: "一键数据提取", desc: "只需点击一下，即可从 LinkedIn 和 Indeed 等平台无缝提取职位详细信息。" },
+            { icon: 'refresh-cw', title: "一键更新 Canva 简历", desc: "独家将优化内容直接同步至您的 Claude 项目，即时更新您的 Canva 模板。" },
+            { icon: 'message-square', title: "外展拓展助手", desc: "生成高转换率的 LinkedIn 消息与求职信，并附上专业署名。" },
+            { icon: 'folder', title: "本地项目记录", desc: "在浏览器中安全地于本地保存、管理和追踪您的优化历史记录。" }
+          ]
+        },
+        pricing: {
+          title: "最低定价",
+          desc: "选择符合您职业目标的方案。随时可以升级。",
+          forever: "/永久",
+          mo: "/月",
+          mostPopular: "最受欢迎",
+          fullExperience: "最强大",
+          lowestPrice: "市场最低价",
+          free: { title: "免费", btn: "开始使用" },
+          pro: { title: "专业", btn: "升级至专业版" },
+          premium: { title: "尊享", btn: "获取尊享版" },
+          bullets: {
+            free: [
+              { bold: "核心 AI 简历优化：", text: "自动根据 JD 调整关键词和结构。", highlight: false },
+              { bold: "ATS 匹配与 SWOT 分析：", text: "即时兼容性分析，突显优势与差距。", highlight: false },
+              { bold: "面试准备：", text: "根据个人档案生成专属 AI 面试问题。", highlight: false },
+              { bold: "网页职位提取：", text: "一键从 LinkedIn/Indeed 提取 JD 文字。", highlight: false },
+              { bold: "本地项目记录：", text: "在本地端安全管理您的历史记录。", highlight: false }
+            ],
+            pro: [
+              { bold: "包含所有免费功能", text: "", highlight: false },
+              { bold: "AI 求职信生成器：", text: "量身定制、针对特定工作的专业求职信。", highlight: true },
+              { bold: "进阶 AI 逻辑：", text: "更细腻、高质量的优化提示词，带来更好结果。", highlight: false }
+            ],
+            premium: [
+              { bold: "包含所有专业版功能", text: "", highlight: false },
+              { bold: "LinkedIn 拓展模板：", text: "专属消息模板与专业署名，提升人脉拓展效率。", highlight: true },
+              { bold: "一键更新 Canva 简历：", text: "通过免费版 Claude 连接 Canva，一键自动生成内容。", highlight: true },
+              { bold: "更高品质结果：", text: "所有功能皆采用更高品质的 LLM 模块。", highlight: true }
+            ]
+          }
+        },
+        footer: {
+          privacy: "隐私政策",
+          terms: "服务条款",
+          refund: "退款政策",
+          contact: "联系我们",
+          tagline: "求职者专属的终极 AI 工具包。",
+          rights: "CV.dot. 保留所有权利。"
+        }
+      }
+    };
+
+    // --- 防破圖 Logo 元件 ---
+    const SmartLogo = ({ className, textClass = "text-xl" }) => {
+      const [hasError, setHasError] = useState(false);
+      if (hasError) {
+        return (
+          <div className={`bg-[#FF5722] flex items-center justify-center text-white font-black leading-none ${className}`} style={{ borderRadius: '25%' }}>
+            <span className={textClass}>CV.</span>
+          </div>
+        );
+      }
+      return (
+        <img 
+          src="./with_padding.png" 
+          alt="CV.dot Logo" 
+          className={`object-cover ${className}`}
+          onError={() => setHasError(true)} 
+        />
+      );
+    };
+
+    // --- 主要 APP 元件 ---
+    function App() {
+      const [lang, setLang] = useState('en');
+      const [activeTab, setActiveTab] = useState('optimization');
+      const [currentHash, setCurrentHash] = useState(window.location.hash);
+
+      useEffect(() => {
+        const handleHashChange = () => setCurrentHash(window.location.hash);
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+      }, []);
+
+      const t = translations[lang];
+      const isPolicyPage = ['#privacy', '#terms', '#refund'].includes(currentHash);
+      const activePolicy = isPolicyPage ? t.policies[currentHash.replace('#', '')] : null;
+
+      useEffect(() => {
+        if (isPolicyPage) window.scrollTo(0, 0);
+      }, [currentHash, isPolicyPage]);
+      
+      const tabIcons = [
+        { id: 'optimization', icon: 'pen-tool' },
+        { id: 'analysis', icon: 'trending-up' },
+        { id: 'interview', icon: 'message-square' },
+        { id: 'coverLetter', icon: 'mail' },
+        { id: 'outreach', icon: 'send' },
+        { id: 'projects', icon: 'folder' },
+        { id: 'settings', icon: 'settings' }
+      ];
+
+      return (
+        <div className="flex flex-col min-h-screen">
+          {/* Navigation */}
+          <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                <a href="#" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <SmartLogo className="w-9 h-9 shadow-sm rounded-lg" textClass="text-lg" />
+                  <span className="font-bold text-xl tracking-tight">CV.dot</span>
+                </a>
+                <div className="hidden md:flex space-x-8">
+                  {!isPolicyPage ? (
+                    <React.Fragment>
+                      <a href="#features" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">{t.nav.features}</a>
+                      <a href="#demo" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">{t.nav.howItWorks}</a>
+                      <a href="#pricing" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">{t.nav.pricing}</a>
+                    </React.Fragment>
+                  ) : (
+                    <a href="#" className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors">
+                      <Icon name="arrow-left" size={16} /> {t.nav.backToHome}
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="hidden sm:flex items-center gap-1 text-slate-600 hover:text-slate-900">
+                    <Icon name="globe" size={16} />
+                    <select 
+                      value={lang} 
+                      onChange={(e) => setLang(e.target.value)}
+                      className="bg-transparent font-medium outline-none cursor-pointer border-none text-sm focus:ring-0"
+                    >
+                      <option value="en">English</option>
+                      <option value="zh-TW">繁體中文</option>
+                      <option value="zh-CN">簡體中文</option>
+                    </select>
+                  </div>
+                  {!isPolicyPage && (
+                    <a 
+                      href="https://chromewebstore.google.com/detail/cv-optimizer-side-panel/eacjadcbhijbepiaajdpbbplmbbhokma"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-[#1e293b] hover:bg-black text-white px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Icon name="chrome" size={16} />
+                      {t.nav.addToChrome}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          <main className="flex-grow">
+            {!isPolicyPage ? (
+              <React.Fragment>
+                {/* Hero Section */}
+                <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
+                  <div className="mb-4 flex flex-col items-center justify-center">
+                    <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-400 uppercase tracking-widest mb-4">
+                      {t.hero.bestTools}
+                    </h2>
+                  </div>
+
+                  {/* Combined Unified Card */}
+                  <div className="relative inline-flex flex-col items-center px-4 sm:px-12 py-8 mb-12 rounded-3xl bg-slate-50/50 backdrop-blur-md shadow-[0_0_25px_rgba(168,85,247,0.2)] border-[1.5px] border-purple-200/60 max-w-full">
+                    
+                    {/* Tech & Professional Slogan inside Card */}
+                    <div className="inline-flex flex-row justify-center items-center bg-[#2B2D3A] border border-slate-700/50 shadow-xl shadow-blue-900/10 px-6 sm:px-10 py-4 sm:py-5 rounded-2xl select-none relative overflow-hidden group mb-10 w-full md:w-auto">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-[#E2563D]/10 opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+                      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-400/20 to-transparent"></div>
+
+                      <div className="flex items-center z-10 gap-3 sm:gap-6">
+                        {/* Step 1 */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-blue-400 font-mono font-bold text-lg sm:text-2xl opacity-70">&gt;</div>
+                          <div className="text-slate-200 font-mono font-bold text-lg sm:text-2xl md:text-3xl tracking-[0.15em] uppercase group-hover:text-white transition-colors whitespace-nowrap">
+                            {t.hero.slogan.split(' ')[0]}
+                          </div>
+                        </div>
+                        <div className="w-4 sm:w-8 h-[2px] bg-slate-600/80 rounded-full relative overflow-hidden hidden sm:block">
+                          <div className="absolute inset-0 bg-blue-400/50 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-indigo-400 font-mono font-bold text-lg sm:text-2xl opacity-70">&gt;</div>
+                          <div className="text-slate-200 font-mono font-bold text-lg sm:text-2xl md:text-3xl tracking-[0.15em] uppercase group-hover:text-white transition-colors whitespace-nowrap">
+                            {t.hero.slogan.split(' ')[1]}
+                          </div>
+                        </div>
+                        <div className="w-4 sm:w-8 h-[2px] bg-slate-600/80 rounded-full relative overflow-hidden hidden sm:block">
+                           <div className="absolute inset-0 bg-orange-400/50 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out delay-150"></div>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-[#E2563D] font-mono font-bold text-lg sm:text-2xl opacity-70">&gt;</div>
+                          <div className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF5722] to-orange-400 font-mono font-black text-lg sm:text-2xl md:text-3xl tracking-[0.15em] uppercase drop-shadow-[0_0_10px_rgba(255,87,34,0.2)] whitespace-nowrap">
+                            {t.hero.slogan.split(' ')[2]}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Glowing Badge */}
+                    <div className="relative inline-flex group/btn cursor-pointer mt-4">
+                      <div className="animated-glow absolute -inset-1 bg-gradient-to-r from-blue-300 via-fuchsia-300 to-rose-300 rounded-full blur-lg opacity-70 group-hover/btn:opacity-100 transition-all duration-500"></div>
+                      <div className="relative inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white text-[#E2563D] font-bold text-sm md:text-base border border-slate-100 shadow-sm transition-transform group-hover/btn:scale-[1.02]">
+                        <Icon name="zap" size={18} fill="currentColor" />
+                        {t.hero.badge}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-4xl md:text-7xl font-black text-slate-900 tracking-tight mb-8 leading-tight max-w-4xl mx-auto">
+                    {t.hero.title1} <br className="hidden md:block" />
+                    <span className="text-[#E2563D]">{t.hero.title2}</span>
+                  </div>
+
+                  <p className="mt-4 text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                    {t.hero.desc}
+                  </p>
+                  <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+                    <a 
+                      href="https://chromewebstore.google.com/detail/cv-optimizer-side-panel/eacjadcbhijbepiaajdpbbplmbbhokma"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-[#FF5722] hover:bg-[#E64A19] text-white px-8 py-4 rounded-full font-bold text-lg transition-all shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
+                    >
+                      {t.hero.btnPrimary} <Icon name="arrow-right" size={20} />
+                    </a>
+                    <button className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2">
+                      {t.hero.btnSecondary}
+                    </button>
+                  </div>
+                  <p className="mt-6 text-sm text-slate-500">{t.hero.note}</p>
+                </section>
+
+                {/* Dashboard Preview Section */}
+                <section id="demo" className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto relative hidden md:block">
+                  <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-slate-200 rounded-[3rem] -z-10 transform scale-y-110"></div>
+                  
+                  <div className="relative mt-8">
+                    
+                    {/* 箭頭：放在 CV.dot Logo 正上方，往右偏移兩個 Icon 寬度 */}
+                    <div className="absolute -top-[75px] left-[40%] ml-[200px] md:ml-[250px] flex flex-col items-center -rotate-[15deg] z-20 animate-bounce pointer-events-none drop-shadow-md">
+                      <span className="text-[#E2563D] font-bold text-sm tracking-widest font-mono mb-2 whitespace-nowrap">
+                        {t.hero.clickHere}
+                      </span>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#E2563D]">
+                        <path d="M 12 0 L 12 22" />
+                        <path d="M 5 15 L 12 22 L 19 15" />
+                      </svg>
+                    </div>
+
+                    <div className="bg-[#F3F2EF] rounded-2xl shadow-2xl border border-slate-300 overflow-hidden flex h-[800px]">
+                      {/* Left Side */}
+                      <div className="w-[40%] p-6 overflow-y-auto custom-scrollbar border-r border-slate-300">
+                        <div className="bg-white rounded-xl p-5 mb-4 shadow-sm">
+                          <h2 className="text-[20px] font-bold text-slate-900 leading-snug mb-1">Senior Platform Marketing Manager <span className="text-slate-400 font-normal text-sm ml-1">✓</span></h2>
+                          <div className="text-sm text-slate-600 mb-4 flex items-center flex-wrap gap-x-1">
+                            <span className="blur-[5px] bg-slate-300 text-transparent select-none rounded px-1 relative after:absolute after:inset-0 after:bg-slate-300/40">AJ Bell</span>
+                            <span>· London, England, United Kingdom (Hybrid)</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button className="flex-1 py-1.5 rounded-full border-2 border-[#0A66C2] text-[#0A66C2] font-semibold text-sm hover:bg-blue-50 transition-colors">Save</button>
+                            <button className="flex-1 py-1.5 rounded-full bg-[#0A66C2] text-white font-semibold text-sm hover:bg-[#004182] transition-colors flex items-center justify-center gap-1">
+                              <span className="font-bold">in</span> Easy Apply
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-slate-200/50">
+                          <h3 className="font-bold text-slate-900 mb-4 text-lg">About the job</h3>
+                          <p className="text-sm text-slate-700 leading-relaxed font-semibold mb-3">Job Description</p>
+                          <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                            We're hiring a Senior Platform Marketing Manager to drive measurable growth across our advised business.
+                          </p>
+                          <p className="text-sm text-slate-700 leading-relaxed">
+                            This is a commercially critical role with clear accountability... <span className="text-slate-500 cursor-pointer hover:underline">more</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right Side */}
+                      <div className="w-[60%] bg-white flex flex-col relative shrink-0">
+                        {/* Header - 靠左對齊 (justify-start) 符合截圖 */}
+                        <div className="flex items-center justify-start gap-8 sm:gap-10 px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                          <div className="flex items-center gap-3 relative">
+                            <SmartLogo className="w-10 h-10 shadow-sm rounded-xl" textClass="text-xl" />
+                            <div>
+                              <h3 className="font-bold text-slate-900 leading-none">CV.dot</h3>
+                              <span className="text-[10px] font-bold text-blue-600 tracking-wider uppercase">{t.mockup.plan}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2 text-slate-400 relative">
+                            {tabIcons.map((tab) => (
+                              <div 
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`p-2.5 rounded-xl cursor-pointer transition-all ${
+                                  activeTab === tab.id 
+                                    ? 'bg-[#0F172A] text-white shadow-md' 
+                                    : 'hover:bg-slate-100 hover:text-slate-600'
+                                }`}
+                              >
+                                <Icon name={tab.icon} size={20} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 md:p-8 flex-grow overflow-y-auto custom-scrollbar">
+                          {activeTab === 'optimization' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="flex justify-between items-end mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.title}</h2>
+                                <button className="flex items-center gap-2 text-[#EF4444] bg-red-50 border border-red-100 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-100 transition-colors">
+                                  <Icon name="trash-2" size={16} /> {t.mockup.startOver}
+                                </button>
+                              </div>
+                              <div className="bg-[#0F172A] rounded-2xl p-6 mb-8 text-white shadow-lg">
+                                <div className="flex justify-between items-end mb-4">
+                                  <span className="text-slate-300 font-medium">{t.mockup.atsScore}</span>
+                                  <span className="text-4xl font-bold">55%</span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-3">
+                                  <div className="bg-[#3B82F6] h-3 rounded-full" style={{ width: '55%' }}></div>
+                                </div>
+                              </div>
+                              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 mb-8">
+                                <div className="flex items-center gap-2 mb-4 text-slate-600 font-semibold tracking-wide text-sm">
+                                  <Icon name="target" size={18} /> {t.mockup.jdFocus}
+                                </div>
+                                <p className="text-slate-600 italic leading-relaxed text-lg">{t.mockup.jdText}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2.5 pb-4">
+                                {t.mockup.tags.map((tag, i) => (
+                                  <span key={i} className="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 text-sm font-medium">{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'analysis' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.analysis.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.analysis.subtitle}</p>
+                              </div>
+                              <div className="bg-black rounded-3xl p-6 md:p-8 mb-8 text-white shadow-xl relative overflow-hidden">
+                                <div className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">{t.mockup.analysis.scoreTitle}</div>
+                                <div className="flex items-baseline gap-2 mb-6">
+                                  <span className="text-6xl font-bold">55</span>
+                                  <span className="text-slate-400 font-medium">/ 100</span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-2">
+                                  <div className="bg-[#3B82F6] h-2 rounded-full" style={{ width: '55%' }}></div>
+                                </div>
+                              </div>
+                              <div className="mb-8">
+                                <div className="flex items-center gap-2 mb-4 text-xs font-bold text-slate-400 tracking-widest uppercase">
+                                  <span className="text-amber-500"><Icon name="alert-triangle" size={16} /></span> {t.mockup.analysis.missingTitle}
+                                </div>
+                                <div className="flex flex-wrap gap-2.5">
+                                  {t.mockup.analysis.missingTags.map((tag, i) => (
+                                    <span key={i} className="px-4 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-100 text-sm font-bold">{tag}</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="bg-emerald-50/50 rounded-3xl p-6 border border-emerald-100 mb-4">
+                                <div className="flex items-center gap-2 mb-4 text-xs font-bold text-emerald-700 tracking-widest uppercase">
+                                  <Icon name="check-circle" size={18} /> {t.mockup.analysis.strengthsTitle}
+                                </div>
+                                <ul className="list-disc pl-5 text-slate-800 text-sm leading-relaxed space-y-2">
+                                  <li>{t.mockup.analysis.strengthText}</li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'interview' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.interview.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.interview.subtitle}</p>
+                              </div>
+                              <div className="space-y-4 pb-4">
+                                {[t.mockup.interview.q1, t.mockup.interview.q2, t.mockup.interview.q3].map((q, i) => (
+                                  <div key={i} className="flex gap-4 p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                                    <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-sm">{i + 1}</div>
+                                    <p className="text-slate-700 text-sm leading-relaxed">{q}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'coverLetter' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.coverLetter.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.coverLetter.subtitle}</p>
+                              </div>
+                              <div className="p-6 md:p-8 rounded-2xl border border-slate-100 bg-white shadow-sm text-slate-700 text-sm md:text-base leading-relaxed space-y-4 mb-4">
+                                <p>{t.mockup.coverLetter.text1}</p>
+                                <p>{t.mockup.coverLetter.text2}</p>
+                                <p>{t.mockup.coverLetter.text3}</p>
+                                <p>{t.mockup.coverLetter.text4}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'outreach' && (
+                            <div className="animate-in fade-in duration-300 pb-4">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.outreach.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.outreach.subtitle}</p>
+                              </div>
+                              <div className="bg-amber-50/50 rounded-2xl p-5 mb-8 border border-amber-100 flex gap-3 text-amber-800 text-sm">
+                                <span className="shrink-0 mt-0.5"><Icon name="lightbulb" size={20} /></span>
+                                <p className="leading-relaxed">{t.mockup.outreach.tip}</p>
+                              </div>
+                              <div className="bg-blue-50/30 rounded-3xl p-6 md:p-8 border border-blue-100 mb-6 relative group">
+                                <div className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold tracking-widest uppercase mb-4">{t.mockup.outreach.profTitle}</div>
+                                <p className="text-slate-700 text-base leading-relaxed whitespace-pre-line mb-6">{t.mockup.outreach.profBody}</p>
+                                <button className="w-full py-3 rounded-xl border border-blue-200 text-blue-600 font-bold text-sm bg-white hover:bg-blue-50 flex items-center justify-center gap-2">
+                                  <Icon name="copy" size={16} /> {t.mockup.outreach.copyBtn}
+                                </button>
+                              </div>
+                              <div className="bg-emerald-50/30 rounded-3xl p-6 md:p-8 border border-emerald-100">
+                                <div className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold tracking-widest uppercase mb-4">{t.mockup.outreach.achieveTitle}</div>
+                                <p className="text-slate-700 text-base leading-relaxed whitespace-pre-line">{t.mockup.outreach.achieveBody}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'projects' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.projects.title}</h2>
+                              </div>
+                              <div className="border-[3px] border-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-lg transition-all cursor-pointer bg-white">
+                                <div>
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="text-xl font-black text-slate-900">{t.mockup.projects.itemName}</h3>
+                                    <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-widest">{t.mockup.projects.date}</span>
+                                  </div>
+                                  <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+                                    <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">{t.mockup.projects.itemTag}</span>
+                                    <span className="text-slate-300 text-xs hidden sm:inline">•</span>
+                                    <span className="text-slate-400 text-xs font-bold">{t.mockup.projects.date}</span>
+                                    <span className="text-blue-500 text-[10px] font-bold tracking-widest uppercase sm:ml-4">{t.mockup.projects.match}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-slate-400">
+                                  <div className="p-2"><Icon name="edit-2" size={18} /></div>
+                                  <div className="p-2"><Icon name="trash-2" size={18} /></div>
+                                  <div className="p-2"><Icon name="chevron-right" size={20} /></div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'settings' && (
+                            <div className="animate-in fade-in duration-300 pt-4">
+                              <div className="bg-[#0A0A0A] rounded-2xl p-6 md:p-8 text-white max-w-xl">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-purple-400"><Icon name="sparkles" size={24} /></span>
+                                  <h2 className="text-2xl font-bold">{t.mockup.settings.title}</h2>
+                                </div>
+                                <p className="text-slate-400 text-sm mb-8">{t.mockup.settings.subtitle}</p>
+                                <button className="w-full py-4 rounded-xl bg-[#4B5563]/50 hover:bg-[#4B5563]/80 transition-colors flex items-center justify-center gap-2 text-slate-300 font-bold border border-slate-500/30">
+                                  <span className="text-slate-400"><Icon name="target" size={18} /></span> {t.mockup.settings.btn}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </React.Fragment>
+            ) : (
+              <section className="pt-32 pb-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12">
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">{activePolicy.title}</h1>
+                  <p className="text-slate-500 mb-10 pb-6 border-b border-slate-100">{activePolicy.date}</p>
+                  
+                  <div className="space-y-8">
+                    {activePolicy.sections.map((section, idx) => (
+                      <div key={idx}>
+                        <h2 className="text-xl font-bold text-slate-800 mb-4">{section.title}</h2>
+                        {section.content && <p className="text-slate-600 leading-relaxed mb-4">{section.content}</p>}
+                        {section.items && (
+                          <ul className="list-disc list-outside pl-5 space-y-2 text-slate-600 leading-relaxed">
+                            {section.items.map((item, i) => <li key={i}>{item}</li>)}
+                          </ul>
+                        )}
+                        {section.afterItems && <p className="text-slate-600 leading-relaxed mt-4">{section.afterItems}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Features Section */}
+            {!isPolicyPage && (
+              <React.Fragment>
+                <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                  <div className="text-center mb-16">
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">{t.features.title}</h2>
+                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t.features.desc}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {t.features.list.map((feature, idx) => {
+                      const iconNames = ['target', 'bar-chart', 'download', 'refresh-cw', 'message-square', 'folder'];
+                      const iconColors = ['text-orange-500', 'text-blue-500', 'text-purple-500', 'text-emerald-500', 'text-pink-500', 'text-amber-500'];
+                      return (
+                        <div key={idx} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                          <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mb-6">
+                            <span className={iconColors[idx]}><Icon name={iconNames[idx]} size={24} /></span>
+                          </div>
+                          <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
+                          <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                {/* Pricing Section */}
+                <section id="pricing" className="py-24 bg-slate-900 px-4 sm:px-6 lg:px-8">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                      <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t.pricing.title}</h2>
+                      <p className="text-lg text-slate-400 max-w-2xl mx-auto">{t.pricing.desc}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto pt-4 md:pt-8">
+                      {/* Free Plan */}
+                      <div className="bg-white rounded-3xl p-8 relative flex flex-col mt-4 md:mt-0">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-orange-400 rounded-t-3xl"></div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-4 h-4 rounded-full bg-orange-400"></div>
+                          <h3 className="text-xl font-bold text-slate-900">{t.pricing.free.title}</h3>
+                        </div>
+                        <div className="mb-6">
+                          <span className="text-4xl font-extrabold text-slate-900">$0</span>
+                          <span className="text-slate-500">{t.pricing.forever}</span>
+                        </div>
+                        <ul className="space-y-4 mb-8 flex-grow">
+                          {t.pricing.bullets.free.map((bullet, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-orange-500 mt-1 shrink-0"><Icon name="check" size={18} /></span>
+                              <span className="text-slate-600 text-sm leading-relaxed">
+                                <b className={`font-semibold ${bullet.highlight ? 'bg-yellow-300 px-1 py-0.5 rounded text-slate-900' : ''}`}>{bullet.bold}</b>{bullet.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <a 
+                          href="https://chromewebstore.google.com/detail/cv-optimizer-side-panel/eacjadcbhijbepiaajdpbbplmbbhokma"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-3 rounded-xl font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors mt-auto text-center block"
+                        >
+                          {t.pricing.free.btn}
+                        </a>
+                      </div>
+
+                      {/* Pro Plan */}
+                      <div className="bg-white rounded-3xl p-8 relative flex flex-col shadow-xl transform md:-translate-y-4 mt-8 md:mt-0">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-blue-500 rounded-t-3xl"></div>
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase whitespace-nowrap shadow-md">{t.pricing.mostPopular}</div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                          <h3 className="text-xl font-bold text-slate-900">{t.pricing.pro.title}</h3>
+                        </div>
+                        <div className="mb-6">
+                          <span className="text-4xl font-extrabold text-slate-900">$9.99</span>
+                          <span className="text-slate-500">{t.pricing.mo}</span>
+                        </div>
+                        <ul className="space-y-4 mb-8 flex-grow">
+                          {t.pricing.bullets.pro.map((bullet, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-blue-500 mt-1 shrink-0"><Icon name="check" size={18} /></span>
+                              <span className="text-slate-600 text-sm leading-relaxed">
+                                <b className={`font-semibold ${bullet.highlight ? 'bg-yellow-300 px-1.5 py-0.5 rounded text-slate-900' : ''}`}>{bullet.bold}</b>{bullet.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button className="w-full py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/30 transition-colors mt-auto">
+                          {t.pricing.pro.btn}
+                        </button>
+                      </div>
+
+                      {/* Premium Plan */}
+                      <div className="bg-white rounded-3xl p-8 relative flex flex-col shadow-xl transform md:-translate-y-4 mt-8 md:mt-0">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-purple-500 rounded-t-3xl"></div>
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase whitespace-nowrap shadow-md">{t.pricing.fullExperience}</div>
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-purple-500"></div>
+                            <h3 className="text-xl font-bold text-slate-900">{t.pricing.premium.title}</h3>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">{t.pricing.lowestPrice}</span>
+                        </div>
+                        <div className="mb-6">
+                          <span className="text-4xl font-extrabold text-slate-900">$14.99</span>
+                          <span className="text-slate-500">{t.pricing.mo}</span>
+                        </div>
+                        <ul className="space-y-4 mb-8 flex-grow">
+                          {t.pricing.bullets.premium.map((bullet, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-purple-500 mt-1 shrink-0"><Icon name="check" size={18} /></span>
+                              <span className="text-slate-600 text-sm leading-relaxed">
+                                <b className={`font-semibold ${bullet.highlight ? 'bg-yellow-300 px-1.5 py-0.5 rounded text-slate-900' : ''}`}>{bullet.bold}</b>{bullet.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button className="w-full py-3 rounded-xl font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-colors mt-auto">
+                          {t.pricing.premium.btn}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </React.Fragment>
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-slate-950 py-12 px-4 border-t border-slate-800 text-center">
+            <div className="flex justify-center items-center gap-2 mb-8">
+              <SmartLogo className="w-8 h-8 rounded-lg" textClass="text-base" />
+              <span className="font-bold text-xl text-white tracking-tight">CV.dot</span>
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-10 mb-8 text-sm font-medium text-slate-400">
+              <a href="#privacy" onClick={() => setCurrentHash('#privacy')} className="hover:text-white transition-colors">{t.footer.privacy}</a>
+              <a href="#terms" onClick={() => setCurrentHash('#terms')} className="hover:text-white transition-colors">{t.footer.terms}</a>
+              <a href="#refund" onClick={() => setCurrentHash('#refund')} className="hover:text-white transition-colors">{t.footer.refund}</a>
+              <a href="mailto:support@cv-dot.om" className="hover:text-white transition-colors">{t.footer.contact}</a>
+            </div>
+
+            <p className="text-slate-500 text-sm mb-4">{t.footer.tagline}</p>
+            <p className="text-slate-600 text-xs">© {new Date().getFullYear()} {t.footer.rights}</p>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
