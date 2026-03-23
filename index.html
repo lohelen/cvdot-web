@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CV.dot - The Ultimate AI-Powered Toolkit</title>
   
+  <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- 載入 React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   
+  <!-- 載入 Babel (用於在瀏覽器編譯 JSX) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
+  <!-- 載入 Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
@@ -45,22 +49,79 @@
 
     // --- Lucide Icon Helper Component ---
     const Icon = ({ name, size = 24, className = '', strokeWidth = 2, fill = 'none' }) => {
-      // 處理圖示名稱對應
-      let iconName = name;
-      if (name === 'check-circle-2') iconName = 'check-circle';
-      if (name === 'trash-2') iconName = 'trash-2';
+      if (!window.lucide || !window.lucide.icons) return null;
+
+      let baseName = name;
+      if (baseName === 'check-circle-2') baseName = 'check-circle';
+      if (baseName === 'trash-2') baseName = 'trash-2';
       
-      const icon = window.lucide.icons[iconName];
+      const pascalName = baseName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+      const camelName = pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
+      
+      const icon = window.lucide.icons[pascalName] || window.lucide.icons[camelName] || window.lucide.icons[baseName];
       if (!icon) return null;
       
-      const svgString = icon.toSvg({ 
-        width: size, 
-        height: size, 
-        class: className, 
-        'stroke-width': strokeWidth,
-        fill: fill
-      });
-      return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: svgString }} />;
+      // 舊版相容：如果有 toSvg 方法，直接使用
+      if (typeof icon.toSvg === 'function') {
+        const svgString = icon.toSvg({ 
+          width: size, 
+          height: size, 
+          class: className, 
+          'stroke-width': strokeWidth,
+          fill: fill
+        });
+        return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: svgString }} />;
+      }
+
+      // 新版處理：解析 Lucide 最新的 AST 陣列為 React Element
+      const renderNode = (node, i) => {
+        if (!Array.isArray(node)) return null;
+        const [tag, attrs, children] = node;
+        const reactAttrs = { key: i };
+        if (attrs) {
+          for (const [k, v] of Object.entries(attrs)) {
+            // 將 stroke-width 轉為 strokeWidth (React 要求的 camelCase 格式)
+            let reactKey = k.replace(/-([a-z])/g, g => g[1].toUpperCase());
+            if (reactKey === 'class') reactKey = 'className';
+            reactAttrs[reactKey] = v;
+          }
+        }
+        return React.createElement(
+          tag,
+          reactAttrs,
+          Array.isArray(children) ? children.map((c, j) => renderNode(c, j)) : null
+        );
+      };
+
+      let childrenNodes = [];
+      if (Array.isArray(icon)) {
+        if (icon.length > 0 && Array.isArray(icon[0])) {
+          childrenNodes = icon; // 例: [ ["path", {...}], ["circle", {...}] ]
+        } else if (typeof icon[0] === 'string') {
+          if (icon[0] === 'svg') {
+             childrenNodes = Array.isArray(icon[2]) ? icon[2] : [];
+          } else {
+             childrenNodes = [icon]; // 例: [ "path", {...} ]
+          }
+        }
+      }
+
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill={fill}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`inline-flex items-center justify-center ${className}`}
+        >
+          {childrenNodes.map((child, i) => renderNode(child, i))}
+        </svg>
+      );
     };
 
     // --- 多國語言字典 (Translations Dictionary) ---
@@ -574,8 +635,9 @@
       }, []);
 
       const t = translations[lang];
+      // 強化安全機制，確保 t.policies 存在
       const isPolicyPage = ['#privacy', '#terms', '#refund'].includes(currentHash);
-      const activePolicy = isPolicyPage ? t.policies[currentHash.replace('#', '')] : null;
+      const activePolicy = isPolicyPage && t.policies ? t.policies[currentHash.replace('#', '')] : null;
 
       useEffect(() => {
         if (isPolicyPage) window.scrollTo(0, 0);
@@ -644,7 +706,29 @@
           </nav>
 
           <main className="flex-grow">
-            {!isPolicyPage ? (
+            {isPolicyPage && activePolicy ? (
+              <section className="pt-32 pb-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12">
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">{activePolicy.title}</h1>
+                  <p className="text-slate-500 mb-10 pb-6 border-b border-slate-100">{activePolicy.date}</p>
+                  
+                  <div className="space-y-8">
+                    {activePolicy.sections.map((section, idx) => (
+                      <div key={idx}>
+                        <h2 className="text-xl font-bold text-slate-800 mb-4">{section.title}</h2>
+                        {section.content && <p className="text-slate-600 leading-relaxed mb-4">{section.content}</p>}
+                        {section.items && (
+                          <ul className="list-disc list-outside pl-5 space-y-2 text-slate-600 leading-relaxed">
+                            {section.items.map((item, i) => <li key={i}>{item}</li>)}
+                          </ul>
+                        )}
+                        {section.afterItems && <p className="text-slate-600 leading-relaxed mt-4">{section.afterItems}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            ) : (
               <React.Fragment>
                 {/* Hero Section */}
                 <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
@@ -748,4 +832,388 @@
 
                     <div className="bg-[#F3F2EF] rounded-2xl shadow-2xl border border-slate-300 overflow-hidden flex h-[800px]">
                       {/* Left Side */}
-                      <div className="w-[40%] p-6
+                      <div className="w-[40%] p-6 overflow-y-auto custom-scrollbar border-r border-slate-300">
+                        <div className="bg-white rounded-xl p-5 mb-4 shadow-sm">
+                          <h2 className="text-[20px] font-bold text-slate-900 leading-snug mb-1">Senior Platform Marketing Manager <span className="text-slate-400 font-normal text-sm ml-1">✓</span></h2>
+                          <div className="text-sm text-slate-600 mb-4 flex items-center flex-wrap gap-x-1">
+                            <span className="blur-[5px] bg-slate-300 text-transparent select-none rounded px-1 relative after:absolute after:inset-0 after:bg-slate-300/40">AJ Bell</span>
+                            <span>· London, England, United Kingdom (Hybrid)</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button className="flex-1 py-1.5 rounded-full border-2 border-[#0A66C2] text-[#0A66C2] font-semibold text-sm hover:bg-blue-50 transition-colors">Save</button>
+                            <button className="flex-1 py-1.5 rounded-full bg-[#0A66C2] text-white font-semibold text-sm hover:bg-[#004182] transition-colors flex items-center justify-center gap-1">
+                              <span className="font-bold">in</span> Easy Apply
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-slate-200/50">
+                          <h3 className="font-bold text-slate-900 mb-4 text-lg">About the job</h3>
+                          <p className="text-sm text-slate-700 leading-relaxed font-semibold mb-3">Job Description</p>
+                          <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                            We're hiring a Senior Platform Marketing Manager to drive measurable growth across our advised business.
+                          </p>
+                          <p className="text-sm text-slate-700 leading-relaxed">
+                            This is a commercially critical role with clear accountability... <span className="text-slate-50 cursor-pointer hover:underline">more</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right Side */}
+                      <div className="w-[60%] bg-white flex flex-col relative shrink-0">
+                        {/* Header - 靠左對齊 (justify-start) 符合截圖 */}
+                        <div className="flex items-center justify-start gap-8 sm:gap-10 px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                          <div className="flex items-center gap-3 relative">
+                            <SmartLogo className="w-10 h-10 shadow-sm rounded-xl" textClass="text-xl" />
+                            <div>
+                              <h3 className="font-bold text-slate-900 leading-none">CV.dot</h3>
+                              <span className="text-[10px] font-bold text-blue-600 tracking-wider uppercase">{t.mockup.plan}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2 text-slate-400 relative">
+                            {tabIcons.map((tab) => (
+                              <div 
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`p-2.5 rounded-xl cursor-pointer transition-all ${
+                                  activeTab === tab.id 
+                                    ? 'bg-[#0F172A] text-white shadow-md' 
+                                    : 'hover:bg-slate-100 hover:text-slate-600'
+                                }`}
+                              >
+                                <Icon name={tab.icon} size={20} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 md:p-8 flex-grow overflow-y-auto custom-scrollbar">
+                          {activeTab === 'optimization' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="flex justify-between items-end mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.title}</h2>
+                                <button className="flex items-center gap-2 text-[#EF4444] bg-red-50 border border-red-100 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-100 transition-colors">
+                                  <Icon name="trash-2" size={16} /> {t.mockup.startOver}
+                                </button>
+                              </div>
+                              <div className="bg-[#0F172A] rounded-2xl p-6 mb-8 text-white shadow-lg">
+                                <div className="flex justify-between items-end mb-4">
+                                  <span className="text-slate-300 font-medium">{t.mockup.atsScore}</span>
+                                  <span className="text-4xl font-bold">55%</span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-3">
+                                  <div className="bg-[#3B82F6] h-3 rounded-full" style={{ width: '55%' }}></div>
+                                </div>
+                              </div>
+                              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 mb-8">
+                                <div className="flex items-center gap-2 mb-4 text-slate-600 font-semibold tracking-wide text-sm">
+                                  <Icon name="target" size={18} /> {t.mockup.jdFocus}
+                                </div>
+                                <p className="text-slate-600 italic leading-relaxed text-lg">{t.mockup.jdText}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2.5 pb-4">
+                                {t.mockup.tags.map((tag, i) => (
+                                  <span key={i} className="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 text-sm font-medium">{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'analysis' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.analysis.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.analysis.subtitle}</p>
+                              </div>
+                              <div className="bg-black rounded-3xl p-6 md:p-8 mb-8 text-white shadow-xl relative overflow-hidden">
+                                <div className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">{t.mockup.analysis.scoreTitle}</div>
+                                <div className="flex items-baseline gap-2 mb-6">
+                                  <span className="text-6xl font-bold">55</span>
+                                  <span className="text-slate-400 font-medium">/ 100</span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-2">
+                                  <div className="bg-[#3B82F6] h-2 rounded-full" style={{ width: '55%' }}></div>
+                                </div>
+                              </div>
+                              <div className="mb-8">
+                                <div className="flex items-center gap-2 mb-4 text-xs font-bold text-slate-400 tracking-widest uppercase">
+                                  <span className="text-amber-500"><Icon name="alert-triangle" size={16} /></span> {t.mockup.analysis.missingTitle}
+                                </div>
+                                <div className="flex flex-wrap gap-2.5">
+                                  {t.mockup.analysis.missingTags.map((tag, i) => (
+                                    <span key={i} className="px-4 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-100 text-sm font-bold">{tag}</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="bg-emerald-50/50 rounded-3xl p-6 border border-emerald-100 mb-4">
+                                <div className="flex items-center gap-2 mb-4 text-xs font-bold text-emerald-700 tracking-widest uppercase">
+                                  <Icon name="check-circle" size={18} /> {t.mockup.analysis.strengthsTitle}
+                                </div>
+                                <ul className="list-disc pl-5 text-slate-800 text-sm leading-relaxed space-y-2">
+                                  <li>{t.mockup.analysis.strengthText}</li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'interview' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.interview.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.interview.subtitle}</p>
+                              </div>
+                              <div className="space-y-4 pb-4">
+                                {[t.mockup.interview.q1, t.mockup.interview.q2, t.mockup.interview.q3].map((q, i) => (
+                                  <div key={i} className="flex gap-4 p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                                    <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-sm">{i + 1}</div>
+                                    <p className="text-slate-700 text-sm leading-relaxed">{q}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'coverLetter' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.coverLetter.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.coverLetter.subtitle}</p>
+                              </div>
+                              <div className="p-6 md:p-8 rounded-2xl border border-slate-100 bg-white shadow-sm text-slate-700 text-sm md:text-base leading-relaxed space-y-4 mb-4">
+                                <p>{t.mockup.coverLetter.text1}</p>
+                                <p>{t.mockup.coverLetter.text2}</p>
+                                <p>{t.mockup.coverLetter.text3}</p>
+                                <p>{t.mockup.coverLetter.text4}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'outreach' && (
+                            <div className="animate-in fade-in duration-300 pb-4">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.outreach.title}</h2>
+                                <p className="text-sm text-slate-500 mt-1">{t.mockup.outreach.subtitle}</p>
+                              </div>
+                              <div className="bg-amber-50/50 rounded-2xl p-5 mb-8 border border-amber-100 flex gap-3 text-amber-800 text-sm">
+                                <span className="shrink-0 mt-0.5"><Icon name="lightbulb" size={20} /></span>
+                                <p className="leading-relaxed">{t.mockup.outreach.tip}</p>
+                              </div>
+                              <div className="bg-blue-50/30 rounded-3xl p-6 md:p-8 border border-blue-100 mb-6 relative group">
+                                <div className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold tracking-widest uppercase mb-4">{t.mockup.outreach.profTitle}</div>
+                                <p className="text-slate-700 text-base leading-relaxed whitespace-pre-line mb-6">{t.mockup.outreach.profBody}</p>
+                                <button className="w-full py-3 rounded-xl border border-blue-200 text-blue-600 font-bold text-sm bg-white hover:bg-blue-50 flex items-center justify-center gap-2">
+                                  <Icon name="copy" size={16} /> {t.mockup.outreach.copyBtn}
+                                </button>
+                              </div>
+                              <div className="bg-emerald-50/30 rounded-3xl p-6 md:p-8 border border-emerald-100">
+                                <div className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold tracking-widest uppercase mb-4">{t.mockup.outreach.achieveTitle}</div>
+                                <p className="text-slate-700 text-base leading-relaxed whitespace-pre-line">{t.mockup.outreach.achieveBody}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'projects' && (
+                            <div className="animate-in fade-in duration-300">
+                              <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">{t.mockup.projects.title}</h2>
+                              </div>
+                              <div className="border-[3px] border-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-lg transition-all cursor-pointer bg-white">
+                                <div>
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="text-xl font-black text-slate-900">{t.mockup.projects.itemName}</h3>
+                                    <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-widest">{t.mockup.projects.date}</span>
+                                  </div>
+                                  <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+                                    <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">{t.mockup.projects.itemTag}</span>
+                                    <span className="text-slate-300 text-xs hidden sm:inline">•</span>
+                                    <span className="text-slate-400 text-xs font-bold">{t.mockup.projects.date}</span>
+                                    <span className="text-blue-500 text-[10px] font-bold tracking-widest uppercase sm:ml-4">{t.mockup.projects.match}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-slate-400">
+                                  <div className="p-2"><Icon name="edit-2" size={18} /></div>
+                                  <div className="p-2"><Icon name="trash-2" size={18} /></div>
+                                  <div className="p-2"><Icon name="chevron-right" size={20} /></div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTab === 'settings' && (
+                            <div className="animate-in fade-in duration-300 pt-4">
+                              <div className="bg-[#0A0A0A] rounded-2xl p-6 md:p-8 text-white max-w-xl">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-purple-400"><Icon name="sparkles" size={24} /></span>
+                                  <h2 className="text-2xl font-bold">{t.mockup.settings.title}</h2>
+                                </div>
+                                <p className="text-slate-400 text-sm mb-8">{t.mockup.settings.subtitle}</p>
+                                <button className="w-full py-4 rounded-xl bg-[#4B5563]/50 hover:bg-[#4B5563]/80 transition-colors flex items-center justify-center gap-2 text-slate-300 font-bold border border-slate-500/30">
+                                  <span className="text-slate-400"><Icon name="target" size={18} /></span> {t.mockup.settings.btn}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </React.Fragment>
+            )}
+
+            {/* Features Section */}
+            {!isPolicyPage && (
+              <React.Fragment>
+                <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                  <div className="text-center mb-16">
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">{t.features.title}</h2>
+                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t.features.desc}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {t.features.list.map((feature, idx) => {
+                      const iconNames = ['target', 'bar-chart', 'download', 'refresh-cw', 'message-square', 'folder'];
+                      const iconColors = ['text-orange-500', 'text-blue-500', 'text-purple-500', 'text-emerald-500', 'text-pink-500', 'text-amber-500'];
+                      return (
+                        <div key={idx} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                          <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mb-6">
+                            <span className={iconColors[idx]}><Icon name={iconNames[idx]} size={24} /></span>
+                          </div>
+                          <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
+                          <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                {/* Pricing Section */}
+                <section id="pricing" className="py-24 bg-slate-900 px-4 sm:px-6 lg:px-8">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                      <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t.pricing.title}</h2>
+                      <p className="text-lg text-slate-400 max-w-2xl mx-auto">{t.pricing.desc}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto pt-4 md:pt-8">
+                      {/* Free Plan */}
+                      <div className="bg-white rounded-3xl p-8 relative flex flex-col mt-4 md:mt-0">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-orange-400 rounded-t-3xl"></div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-4 h-4 rounded-full bg-orange-400"></div>
+                          <h3 className="text-xl font-bold text-slate-900">{t.pricing.free.title}</h3>
+                        </div>
+                        <div className="mb-6">
+                          <span className="text-4xl font-extrabold text-slate-900">$0</span>
+                          <span className="text-slate-500">{t.pricing.forever}</span>
+                        </div>
+                        <ul className="space-y-4 mb-8 flex-grow">
+                          {t.pricing.bullets.free.map((bullet, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-orange-500 mt-1 shrink-0"><Icon name="check" size={18} /></span>
+                              <span className="text-slate-600 text-sm leading-relaxed">
+                                <b className={`font-semibold ${bullet.highlight ? 'bg-yellow-300 px-1 py-0.5 rounded text-slate-900' : ''}`}>{bullet.bold}</b>{bullet.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <a 
+                          href="https://chromewebstore.google.com/detail/cv-optimizer-side-panel/eacjadcbhijbepiaajdpbbplmbbhokma"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-3 rounded-xl font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors mt-auto text-center block"
+                        >
+                          {t.pricing.free.btn}
+                        </a>
+                      </div>
+
+                      {/* Pro Plan */}
+                      <div className="bg-white rounded-3xl p-8 relative flex flex-col shadow-xl transform md:-translate-y-4 mt-8 md:mt-0">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-blue-500 rounded-t-3xl"></div>
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase whitespace-nowrap shadow-md">{t.pricing.mostPopular}</div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                          <h3 className="text-xl font-bold text-slate-900">{t.pricing.pro.title}</h3>
+                        </div>
+                        <div className="mb-6">
+                          <span className="text-4xl font-extrabold text-slate-900">$9.99</span>
+                          <span className="text-slate-500">{t.pricing.mo}</span>
+                        </div>
+                        <ul className="space-y-4 mb-8 flex-grow">
+                          {t.pricing.bullets.pro.map((bullet, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-blue-500 mt-1 shrink-0"><Icon name="check" size={18} /></span>
+                              <span className="text-slate-600 text-sm leading-relaxed">
+                                <b className={`font-semibold ${bullet.highlight ? 'bg-yellow-300 px-1.5 py-0.5 rounded text-slate-900' : ''}`}>{bullet.bold}</b>{bullet.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button className="w-full py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/30 transition-colors mt-auto">
+                          {t.pricing.pro.btn}
+                        </button>
+                      </div>
+
+                      {/* Premium Plan */}
+                      <div className="bg-white rounded-3xl p-8 relative flex flex-col shadow-xl transform md:-translate-y-4 mt-8 md:mt-0">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-purple-500 rounded-t-3xl"></div>
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase whitespace-nowrap shadow-md">{t.pricing.fullExperience}</div>
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-purple-500"></div>
+                            <h3 className="text-xl font-bold text-slate-900">{t.pricing.premium.title}</h3>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">{t.pricing.lowestPrice}</span>
+                        </div>
+                        <div className="mb-6">
+                          <span className="text-4xl font-extrabold text-slate-900">$14.99</span>
+                          <span className="text-slate-500">{t.pricing.mo}</span>
+                        </div>
+                        <ul className="space-y-4 mb-8 flex-grow">
+                          {t.pricing.bullets.premium.map((bullet, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-purple-500 mt-1 shrink-0"><Icon name="check" size={18} /></span>
+                              <span className="text-slate-600 text-sm leading-relaxed">
+                                <b className={`font-semibold ${bullet.highlight ? 'bg-yellow-300 px-1.5 py-0.5 rounded text-slate-900' : ''}`}>{bullet.bold}</b>{bullet.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button className="w-full py-3 rounded-xl font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-colors mt-auto">
+                          {t.pricing.premium.btn}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </React.Fragment>
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-slate-950 py-12 px-4 border-t border-slate-800 text-center">
+            <div className="flex justify-center items-center gap-2 mb-8">
+              <SmartLogo className="w-8 h-8 rounded-lg" textClass="text-base" />
+              <span className="font-bold text-xl text-white tracking-tight">CV.dot</span>
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-10 mb-8 text-sm font-medium text-slate-400">
+              <a href="#privacy" onClick={() => setCurrentHash('#privacy')} className="hover:text-white transition-colors">{t.footer.privacy}</a>
+              <a href="#terms" onClick={() => setCurrentHash('#terms')} className="hover:text-white transition-colors">{t.footer.terms}</a>
+              <a href="#refund" onClick={() => setCurrentHash('#refund')} className="hover:text-white transition-colors">{t.footer.refund}</a>
+              <a href="mailto:support@cv-dot.com" className="hover:text-white transition-colors">{t.footer.contact}</a>
+            </div>
+
+            <p className="text-slate-500 text-sm mb-4">{t.footer.tagline}</p>
+            <p className="text-slate-600 text-xs">© {new Date().getFullYear()} {t.footer.rights}</p>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
