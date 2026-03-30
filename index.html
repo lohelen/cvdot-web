@@ -61,7 +61,6 @@
       const icon = window.lucide.icons[pascalName] || window.lucide.icons[camelName] || window.lucide.icons[baseName];
       if (!icon) return null;
       
-      // 舊版相容：如果有 toSvg 方法，直接使用
       if (typeof icon.toSvg === 'function') {
         const svgString = icon.toSvg({ 
           width: size, 
@@ -73,14 +72,12 @@
         return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: svgString }} />;
       }
 
-      // 新版處理：解析 Lucide 最新的 AST 陣列為 React Element
       const renderNode = (node, i) => {
         if (!Array.isArray(node)) return null;
         const [tag, attrs, children] = node;
         const reactAttrs = { key: i };
         if (attrs) {
           for (const [k, v] of Object.entries(attrs)) {
-            // 將 stroke-width 轉為 strokeWidth (React 要求的 camelCase 格式)
             let reactKey = k.replace(/-([a-z])/g, g => g[1].toUpperCase());
             if (reactKey === 'class') reactKey = 'className';
             reactAttrs[reactKey] = v;
@@ -96,12 +93,12 @@
       let childrenNodes = [];
       if (Array.isArray(icon)) {
         if (icon.length > 0 && Array.isArray(icon[0])) {
-          childrenNodes = icon; // 例: [ ["path", {...}], ["circle", {...}] ]
+          childrenNodes = icon;
         } else if (typeof icon[0] === 'string') {
           if (icon[0] === 'svg') {
              childrenNodes = Array.isArray(icon[2]) ? icon[2] : [];
           } else {
-             childrenNodes = [icon]; // 例: [ "path", {...} ]
+             childrenNodes = [icon];
           }
         }
       }
@@ -127,7 +124,7 @@
     // --- 多國語言字典 (Translations Dictionary) ---
     const translations = {
       en: {
-        nav: { features: "Features", howItWorks: "How it Works", pricing: "Pricing", addToChrome: "Add to Chrome", backToHome: "Back to Home" },
+        nav: { features: "Features", howItWorks: "How it Works", pricing: "Pricing", addToChrome: "Add to Chrome", upgradePlan: "Upgrade Plan", backToHome: "Back to Home" },
         hero: {
           badge: "One-Click Update Your CV in Canva",
           bestTools: "Best AI CV Tools",
@@ -285,7 +282,7 @@
         }
       },
       "zh-TW": {
-        nav: { features: "功能特色", howItWorks: "運作方式", pricing: "定價方案", addToChrome: "加到 Chrome", backToHome: "回首頁" },
+        nav: { features: "功能特色", howItWorks: "運作方式", pricing: "定價方案", addToChrome: "加到 Chrome", upgradePlan: "升級方案", backToHome: "回首頁" },
         hero: {
           badge: "一鍵即可在 Canva 中更新您的履歷",
           bestTools: "最頂尖的 AI 履歷工具",
@@ -443,7 +440,7 @@
         }
       },
       "zh-CN": {
-        nav: { features: "功能特点", howItWorks: "运作方式", pricing: "定价方案", addToChrome: "添加到 Chrome", backToHome: "返回首页" },
+        nav: { features: "功能特点", howItWorks: "运作方式", pricing: "定价方案", addToChrome: "添加到 Chrome", upgradePlan: "升级方案", backToHome: "返回首页" },
         hero: {
           badge: "一键即可在 Canva 中更新您的简历",
           bestTools: "最顶尖的 AI 简历工具",
@@ -627,8 +624,6 @@
       const [lang, setLang] = useState('en');
       const [activeTab, setActiveTab] = useState('optimization');
       const [currentHash, setCurrentHash] = useState(window.location.hash);
-
-      // 新增：促銷倒數計時狀態 (48 小時 = 172800 秒)
       const [timeLeft, setTimeLeft] = useState(48 * 3600);
 
       useEffect(() => {
@@ -637,7 +632,6 @@
         return () => window.removeEventListener('hashchange', handleHashChange);
       }, []);
 
-      // 新增：促銷倒數計時 Effect
       useEffect(() => {
         const timer = setInterval(() => {
           setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -645,7 +639,6 @@
         return () => clearInterval(timer);
       }, []);
 
-      // 格式化時間 (HH : MM : SS)
       const formatTime = (totalSeconds) => {
         const h = Math.floor(totalSeconds / 3600);
         const m = Math.floor((totalSeconds % 3600) / 60);
@@ -659,7 +652,6 @@
       const { h, m, s } = formatTime(timeLeft);
 
       const t = translations[lang];
-      // 強化安全機制，確保 t.policies 存在
       const isPolicyPage = ['#privacy', '#terms', '#refund'].includes(currentHash);
       const activePolicy = isPolicyPage && t.policies ? t.policies[currentHash.replace('#', '')] : null;
 
@@ -714,15 +706,24 @@
                     </select>
                   </div>
                   {!isPolicyPage && (
-                    <a 
-                      href="https://chromewebstore.google.com/detail/cv-optimizer-side-panel/eacjadcbhijbepiaajdpbbplmbbhokma"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-[#1e293b] hover:bg-black text-white px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 text-sm"
-                    >
-                      <Icon name="chrome" size={16} />
-                      {t.nav.addToChrome}
-                    </a>
+                    <div className="flex gap-2 items-center">
+                      <a 
+                        href="#pricing"
+                        className="hidden md:flex bg-orange-50 hover:bg-orange-100 text-[#E2563D] border border-orange-200 px-4 py-2 rounded-full font-bold transition-colors items-center gap-1.5 text-sm whitespace-nowrap"
+                      >
+                        <Icon name="zap" size={16} />
+                        {t.nav.upgradePlan}
+                      </a>
+                      <a 
+                        href="https://chromewebstore.google.com/detail/cv-optimizer-side-panel/eacjadcbhijbepiaajdpbbplmbbhokma"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#1e293b] hover:bg-black text-white px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+                      >
+                        <Icon name="chrome" size={16} />
+                        {t.nav.addToChrome}
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -878,7 +879,7 @@
                             We're hiring a Senior Platform Marketing Manager to drive measurable growth across our advised business.
                           </p>
                           <p className="text-sm text-slate-700 leading-relaxed">
-                            This is a commercially critical role with clear accountability... <span className="text-slate-50 cursor-pointer hover:underline">more</span>
+                            This is a commercially critical role with clear accountability... <span className="text-slate-500 cursor-pointer hover:underline">more</span>
                           </p>
                         </div>
                       </div>
